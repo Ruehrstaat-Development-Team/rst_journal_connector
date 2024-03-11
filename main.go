@@ -23,7 +23,8 @@ func main() {
 	}
 
 	// Start the processing
-	go parsing.StartProcessing()
+	parsing.SetDebug(parsing.DebugLevelWarn)
+	go parsing.StartProcessingAllFiles()
 
 	<-ctx.Done()
 

@@ -7,8 +7,21 @@ import (
 	"os/user"
 	"path/filepath"
 	"regexp"
+	"runtime"
 	"sync"
+	"time"
 )
+
+type DebugLevel string
+
+const (
+	DebugLevelDebug DebugLevel = "DEBUG"
+	DebugLevelInfo  DebugLevel = "INFO"
+	DebugLevelWarn  DebugLevel = "WARN"
+	DebugLevelError DebugLevel = "ERROR"
+)
+
+var debug = DebugLevelInfo
 
 var parsers = map[string]Parser[Event]{
 	"Fileheader":  FileheaderParser{},
@@ -32,7 +45,9 @@ func processJournalFile(filePath string, wg *sync.WaitGroup) {
 	}
 	defer file.Close()
 
-	log.Println("Processing file:", filePath)
+	if debug == DebugLevelInfo {
+		log.Println("Processing file:", filePath)
+	}
 
 	// Read the file line by line
 	scanner := bufio.NewScanner(file)
@@ -69,7 +84,9 @@ func processJournalFile(filePath string, wg *sync.WaitGroup) {
 		}
 
 		// Print the event
-		log.Println(event)
+		if debug == DebugLevelDebug {
+			log.Println(event)
+		}
 	}
 
 	if err := scanner.Err(); err != nil {
@@ -78,11 +95,11 @@ func processJournalFile(filePath string, wg *sync.WaitGroup) {
 }
 
 // Function to search for journal files in the directory
-func searchJournalFiles(folderPath string, wg *sync.WaitGroup) {
+func searchJournalFiles(folderPath string, wg *sync.WaitGroup) int {
 	files, err := os.ReadDir(folderPath)
 	if err != nil {
 		log.Println("Error reading directory:", err)
-		return
+		return 0
 	}
 
 	for _, file := range files {
@@ -93,9 +110,17 @@ func searchJournalFiles(folderPath string, wg *sync.WaitGroup) {
 			go processJournalFile(filepath.Join(folderPath, fileName), wg)
 		}
 	}
+
+	return len(files)
 }
 
-func StartProcessing() {
+func StartProcessingAllFiles() {
+	// confirm running on windows if not log and return
+	if runtime.GOOS != "windows" {
+		log.Println("This program is only supported on Windows")
+		return
+	}
+
 	// Get the user's home directory
 	currentUser, err := user.Current()
 	if err != nil {
@@ -106,11 +131,22 @@ func StartProcessing() {
 	// Construct the folder path
 	folderPath := filepath.Join(currentUser.HomeDir, "Saved Games", "Frontier Developments", "Elite Dangerous")
 
+	// start a timer to measure the time taken to process the files
+	start := time.Now()
+
 	// Use a WaitGroup to manage goroutines
 	var wg sync.WaitGroup
-	searchJournalFiles(folderPath, &wg)
+	files := searchJournalFiles(folderPath, &wg)
 
 	// Wait for all goroutines to finish
 	wg.Wait()
-	log.Println("All files processed")
+
+	// measure the time taken to process the files
+	elapsed := time.Since(start)
+
+	log.Printf("Processed %d files in %s", files, elapsed)
+}
+
+func SetDebug(value DebugLevel) {
+	debug = value
 }
