@@ -34,6 +34,13 @@ var parsers = map[string]Parser[Event]{
 
 var journalFilePattern = regexp.MustCompile(`^Journal\.\d{4}-\d{2}-\d{2}T\d{6}\.\d{2}\.log$`)
 
+const BUFFER_SIZE = 1024 * 1024 // 1MB / 1024 * 1024 - offers best performance on test machine
+
+type EventMetadata struct {
+	Event     string `json:"event"`
+	Timestamp string `json:"timestamp"`
+}
+
 // Function to process a single journal file
 func processJournalFile(filePath string, wg *sync.WaitGroup) {
 	defer wg.Done()
@@ -51,33 +58,27 @@ func processJournalFile(filePath string, wg *sync.WaitGroup) {
 
 	// Read the file line by line
 	scanner := bufio.NewScanner(file)
+	scanner.Buffer(make([]byte, BUFFER_SIZE), BUFFER_SIZE)
 	for scanner.Scan() {
-		line := scanner.Text()
+		lineBytes := scanner.Bytes()
 
 		// Parse the JSON into a map
-		var eventData map[string]any
-		err := json.Unmarshal([]byte(line), &eventData)
+		var eventData EventMetadata
+		err := json.Unmarshal(lineBytes, &eventData)
 		if err != nil {
 			log.Println("Error parsing JSON:", err)
 			continue // Skip to the next line on error
 		}
 
-		// Get the event type
-		eventType, ok := eventData["event"].(string)
-		if !ok {
-			log.Println("Missing event type")
-			continue // Skip to the next line
-		}
-
 		// Get the parser for the event type
-		parser, ok := parsers[eventType]
+		parser, ok := parsers[eventData.Event]
 		if !ok {
 			//log.Println("Unknown event type:", eventType)
 			continue // Skip to the next line
 		}
 
 		// Parse the event
-		event, err := parser.ParseEvent(line)
+		event, err := parser.ParseEvent(lineBytes)
 		if err != nil {
 			log.Println("Error parsing event:", err)
 			continue // Skip to the next line

@@ -10,7 +10,7 @@ type Event interface {
 }
 
 type Parser[T Event] interface {
-	ParseEvent(eventData string) (T, error)
+	ParseEvent(eventData []byte) (T, error)
 }
 
 var log = logging.Logger{Package: "parser"}

@@ -18,7 +18,7 @@ func (e UndockedEvent) GetTimestamp() string {
 
 type UndockedParser struct{}
 
-func (p UndockedParser) ParseEvent(eventData string) (Event, error) {
+func (p UndockedParser) ParseEvent(eventData []byte) (Event, error) {
 	var event UndockedEvent
 	err := json.Unmarshal([]byte(eventData), &event)
 	if err != nil {

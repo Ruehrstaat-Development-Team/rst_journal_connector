@@ -42,7 +42,7 @@ func (e DockedEvent) GetTimestamp() string {
 
 type DockedParser struct{}
 
-func (p DockedParser) ParseEvent(eventData string) (Event, error) {
+func (p DockedParser) ParseEvent(eventData []byte) (Event, error) {
 	var event DockedEvent
 	err := json.Unmarshal([]byte(eventData), &event)
 	if err != nil {

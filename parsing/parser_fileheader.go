@@ -21,7 +21,7 @@ func (e FileheaderEvent) GetTimestamp() string {
 
 type FileheaderParser struct{}
 
-func (p FileheaderParser) ParseEvent(eventData string) (Event, error) {
+func (p FileheaderParser) ParseEvent(eventData []byte) (Event, error) {
 	var event FileheaderEvent
 	err := json.Unmarshal([]byte(eventData), &event)
 	if err != nil {

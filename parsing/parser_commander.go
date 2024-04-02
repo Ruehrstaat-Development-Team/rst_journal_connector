@@ -19,9 +19,9 @@ func (e CommanderEvent) GetTimestamp() string {
 
 type CommanderParser struct{}
 
-func (p CommanderParser) ParseEvent(eventData string) (Event, error) {
+func (p CommanderParser) ParseEvent(eventData []byte) (Event, error) {
 	var event CommanderEvent
-	err := json.Unmarshal([]byte(eventData), &event)
+	err := json.Unmarshal(eventData, &event)
 	if err != nil {
 		return nil, err
 	}

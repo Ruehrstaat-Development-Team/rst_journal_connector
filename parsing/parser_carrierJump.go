@@ -49,7 +49,7 @@ func (e CarrierJumpEvent) GetTimestamp() string {
 
 type CarrierJumpParser struct{}
 
-func (p CarrierJumpParser) ParseEvent(eventData string) (Event, error) {
+func (p CarrierJumpParser) ParseEvent(eventData []byte) (Event, error) {
 	var event CarrierJumpEvent
 	err := json.Unmarshal([]byte(eventData), &event)
 	if err != nil {
