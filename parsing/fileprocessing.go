@@ -12,34 +12,9 @@ import (
 	"time"
 )
 
-type DebugLevel string
-
-const (
-	DebugLevelDebug DebugLevel = "DEBUG"
-	DebugLevelInfo  DebugLevel = "INFO"
-	DebugLevelWarn  DebugLevel = "WARN"
-	DebugLevelError DebugLevel = "ERROR"
-)
-
-var debug = DebugLevelInfo
-
-var parsers = map[string]Parser[Event]{
-	"Fileheader":  FileheaderParser{},
-	"Commander":   CommanderParser{},
-	"Docked":      DockedParser{},
-	"Undocked":    UndockedParser{},
-	"CarrierJump": CarrierJumpParser{},
-	// more parsers...
-}
-
 var journalFilePattern = regexp.MustCompile(`^Journal\.\d{4}-\d{2}-\d{2}T\d{6}\.\d{2}\.log$`)
 
 const BUFFER_SIZE = 1024 * 1024 // 1MB / 1024 * 1024 - offers best performance on test machine
-
-type EventMetadata struct {
-	Event     string `json:"event"`
-	Timestamp string `json:"timestamp"`
-}
 
 // Function to process a single journal file
 func processJournalFile(filePath string, wg *sync.WaitGroup) {
@@ -73,7 +48,6 @@ func processJournalFile(filePath string, wg *sync.WaitGroup) {
 		// Get the parser for the event type
 		parser, ok := parsers[eventData.Event]
 		if !ok {
-			//log.Println("Unknown event type:", eventType)
 			continue // Skip to the next line
 		}
 
@@ -93,6 +67,7 @@ func processJournalFile(filePath string, wg *sync.WaitGroup) {
 	if err := scanner.Err(); err != nil {
 		log.Println("Error reading file:", err)
 	}
+
 }
 
 // Function to search for journal files in the directory
@@ -146,8 +121,4 @@ func StartProcessingAllFiles() {
 	elapsed := time.Since(start)
 
 	log.Printf("Processed %d files in %s", files, elapsed)
-}
-
-func SetDebug(value DebugLevel) {
-	debug = value
 }
