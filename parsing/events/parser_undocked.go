@@ -1,4 +1,4 @@
-package parsing
+package events
 
 import "encoding/json"
 

@@ -1,23 +1,14 @@
 package parsing
 
 import (
-	"Journal-Connector/logging"
+	"github.com/Ruehrstaat-Development-Team/rst_journal_connector/logging"
+	"github.com/Ruehrstaat-Development-Team/rst_journal_connector/parsing/events"
 )
 
-var Events = make(map[EventMetadata]Event)
-var UnknownEvents = make(map[EventMetadata]string)
+var Events = make(map[events.EventMetadata]events.Event)
+var UnknownEvents = make(map[events.EventMetadata]string)
 
-type Event interface {
-	GetType() string
-	GetTimestamp() string
-}
-
-type EventMetadata struct {
-	Event     string `json:"event"`
-	Timestamp string `json:"timestamp"`
-}
-
-type Parser[T Event] interface {
+type Parser[T events.Event] interface {
 	ParseEvent(eventData []byte) (T, error)
 }
 
@@ -38,11 +29,11 @@ func SetDebug(value DebugLevel) {
 	debug = value
 }
 
-var parsers = map[string]Parser[Event]{
-	"Fileheader":  FileheaderParser{},
-	"Commander":   CommanderParser{},
-	"Docked":      DockedParser{},
-	"Undocked":    UndockedParser{},
-	"CarrierJump": CarrierJumpParser{},
+var parsers = map[string]Parser[events.Event]{
+	"Fileheader":  events.FileheaderParser{},
+	"Commander":   events.CommanderParser{},
+	"Docked":      events.DockedParser{},
+	"Undocked":    events.UndockedParser{},
+	"CarrierJump": events.CarrierJumpParser{},
 	// more parsers...
 }

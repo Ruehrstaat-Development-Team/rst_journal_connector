@@ -10,6 +10,8 @@ import (
 	"runtime"
 	"sync"
 	"time"
+
+	"github.com/Ruehrstaat-Development-Team/rst_journal_connector/parsing/events"
 )
 
 var journalFilePattern = regexp.MustCompile(`^Journal\.\d{4}-\d{2}-\d{2}T\d{6}\.\d{2}\.log$`)
@@ -38,7 +40,7 @@ func processJournalFile(filePath string, wg *sync.WaitGroup) {
 		lineBytes := scanner.Bytes()
 
 		// Parse the JSON into a map
-		var eventData EventMetadata
+		var eventData events.EventMetadata
 		err := json.Unmarshal(lineBytes, &eventData)
 		if err != nil {
 			log.Println("Error parsing JSON:", err)

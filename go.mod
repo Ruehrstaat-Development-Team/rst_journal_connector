@@ -1,5 +1,3 @@
-module Journal-Connector
+module github.com/Ruehrstaat-Development-Team/rst_journal_connector
 
-go 1.21.6
-
-require github.com/joho/godotenv v1.5.1 // indirect
+go 1.24
