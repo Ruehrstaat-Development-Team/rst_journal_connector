@@ -44,3 +44,21 @@ func (l Logger) Fatalln(v ...any) {
 func (l Logger) Fatalf(format string, v ...any) {
 	log.Fatalf("[ %s ] %s", l.Package, fmt.Sprintf(format, v...))
 }
+
+func (l Logger) PrintWithLevel(level DebugLevel, v ...any) {
+	if IsBelowDebugLevel(level) {
+		l.Print(v...)
+	}
+}
+
+func (l Logger) PrintlnWithLevel(level DebugLevel, v ...any) {
+	if IsBelowDebugLevel(level) {
+		l.Println(v...)
+	}
+}
+
+func (l Logger) PrintfWithLevel(level DebugLevel, format string, v ...any) {
+	if IsBelowDebugLevel(level) {
+		l.Printf(format, v...)
+	}
+}

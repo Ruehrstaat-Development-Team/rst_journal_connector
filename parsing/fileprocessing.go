@@ -11,6 +11,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/Ruehrstaat-Development-Team/rst_journal_connector/logging"
 	"github.com/Ruehrstaat-Development-Team/rst_journal_connector/parsing/events"
 )
 
@@ -29,9 +30,7 @@ func processJournalFile(filePath string, wg *sync.WaitGroup) {
 	}
 	defer file.Close()
 
-	if debug == DebugLevelInfo {
-		log.Println("Processing file:", filePath)
-	}
+	log.PrintWithLevel(logging.DebugLevelInfo, "Processing file:", filePath)
 
 	// Read the file line by line
 	scanner := bufio.NewScanner(file)
@@ -61,9 +60,7 @@ func processJournalFile(filePath string, wg *sync.WaitGroup) {
 		}
 
 		// Print the event
-		if debug == DebugLevelDebug {
-			log.Println(event)
-		}
+		log.PrintWithLevel(logging.DebugLevelDebug, event)
 	}
 
 	if err := scanner.Err(); err != nil {

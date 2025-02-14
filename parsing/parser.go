@@ -14,21 +14,6 @@ type Parser[T events.Event] interface {
 
 var log = logging.Logger{Package: "parser"}
 
-type DebugLevel string
-
-const (
-	DebugLevelDebug DebugLevel = "DEBUG"
-	DebugLevelInfo  DebugLevel = "INFO"
-	DebugLevelWarn  DebugLevel = "WARN"
-	DebugLevelError DebugLevel = "ERROR"
-)
-
-var debug = DebugLevelInfo
-
-func SetDebug(value DebugLevel) {
-	debug = value
-}
-
 var parsers = map[string]Parser[events.Event]{
 	"Fileheader":  events.FileheaderParser{},
 	"Commander":   events.CommanderParser{},
