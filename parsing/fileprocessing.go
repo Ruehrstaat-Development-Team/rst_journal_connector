@@ -15,14 +15,14 @@ import (
 	"github.com/Ruehrstaat-Development-Team/rst_journal_connector/parsing/events"
 )
 
+// Use backticks for the regex pattern string.
 var journalFilePattern = regexp.MustCompile(`^Journal\.\d{4}-\d{2}-\d{2}T\d{6}\.\d{2}\.log$`)
 
-const BUFFER_SIZE = 1024 * 1024 // 1MB / 1024 * 1024 - offers best performance on test machine
+const BUFFER_SIZE = 1024 * 1024 // 1MB
+const WORKER_COUNT = 3
 
-// Function to process a single journal file
-func processJournalFile(filePath string, wg *sync.WaitGroup) {
-	defer wg.Done()
-
+// processJournalFile processes a single journal file.
+func processJournalFile(filePath string) {
 	file, err := os.Open(filePath)
 	if err != nil {
 		log.Println("Error opening file:", err)
@@ -32,92 +32,114 @@ func processJournalFile(filePath string, wg *sync.WaitGroup) {
 
 	log.PrintWithLevel(logging.DebugLevelInfo, "Processing file:", filePath)
 
-	// Read the file line by line
+	// Read the file line by line.
 	scanner := bufio.NewScanner(file)
 	scanner.Buffer(make([]byte, BUFFER_SIZE), BUFFER_SIZE)
 	for scanner.Scan() {
 		lineBytes := scanner.Bytes()
 
-		// Parse the JSON into a map
+		// Parse the JSON into a map.
 		var eventData events.EventMetadata
 		err := json.Unmarshal(lineBytes, &eventData)
 		if err != nil {
 			log.Println("Error parsing JSON:", err)
-			continue // Skip to the next line on error
+			continue // Skip to the next line on error.
 		}
 
-		// Get the parser for the event type
+		// Get the parser for the event type.
 		parser, ok := parsers[eventData.Event]
 		if !ok {
-			continue // Skip to the next line
+			continue // Skip if no parser is found.
 		}
 
-		// Parse the event
+		// Parse the event.
 		event, err := parser.ParseEvent(lineBytes)
 		if err != nil {
 			log.Println("Error parsing event:", err)
-			continue // Skip to the next line
+			continue // Skip on parsing error.
 		}
 
-		// Print the event
+		// Print the event.
 		log.PrintWithLevel(logging.DebugLevelDebug, event)
 	}
 
 	if err := scanner.Err(); err != nil {
 		log.Println("Error reading file:", err)
 	}
-
 }
 
-// Function to search for journal files in the directory
-func searchJournalFiles(folderPath string, wg *sync.WaitGroup) int {
+// searchJournalFiles scans the folder and sends matching file paths to the fileChan.
+// It returns the total count of journal files found.
+func searchJournalFiles(folderPath string, fileChan chan<- string) int {
 	files, err := os.ReadDir(folderPath)
 	if err != nil {
 		log.Println("Error reading directory:", err)
 		return 0
 	}
 
+	count := 0
 	for _, file := range files {
 		fileName := file.Name()
 		if journalFilePattern.MatchString(fileName) {
-			// Start a goroutine to process the file
-			wg.Add(1)
-			go processJournalFile(filepath.Join(folderPath, fileName), wg)
+			fileChan <- filepath.Join(folderPath, fileName)
+			count++
 		}
 	}
 
-	return len(files)
+	return count
 }
 
+// worker is a goroutine that processes files from the fileChan.
+func worker(fileChan <-chan string, wg *sync.WaitGroup) {
+	defer wg.Done()
+	for filePath := range fileChan {
+		processJournalFile(filePath)
+	}
+}
+
+// StartProcessingAllFiles starts the worker pool, queues up the journal files for processing,
+// and waits until all files have been processed.
 func StartProcessingAllFiles() {
-	// confirm running on windows if not log and return
+	// Confirm running on Windows.
 	if runtime.GOOS != "windows" {
 		log.Println("This program is only supported on Windows")
 		return
 	}
 
-	// Get the user's home directory
+	// Get the user's home directory.
 	currentUser, err := user.Current()
 	if err != nil {
 		log.Println("Error getting user's home directory:", err)
 		return
 	}
 
-	// Construct the folder path
+	// Construct the folder path.
 	folderPath := filepath.Join(currentUser.HomeDir, "Saved Games", "Frontier Developments", "Elite Dangerous")
 
-	// start a timer to measure the time taken to process the files
+	// Start a timer to measure the processing time.
 	start := time.Now()
 
-	// Use a WaitGroup to manage goroutines
-	var wg sync.WaitGroup
-	files := searchJournalFiles(folderPath, &wg)
+	// Create a channel to queue file paths.
+	fileChan := make(chan string, 100) // Buffered channel for efficiency.
 
-	// Wait for all goroutines to finish
+	var wg sync.WaitGroup
+	wg.Add(WORKER_COUNT)
+
+	// Start the worker goroutines.
+	for i := 0; i < WORKER_COUNT; i++ {
+		go worker(fileChan, &wg)
+	}
+
+	// Queue up the journal files.
+	fileCount := searchJournalFiles(folderPath, fileChan)
+
+	// Close the channel to signal no more files.
+	close(fileChan)
+
+	// Wait for all workers to finish.
 	wg.Wait()
 
-	// measure the time taken to process the files
+	// Measure and log the elapsed time.
 	elapsed := time.Since(start)
-
-	log.Printf("Processed %d files in %s", files, elapsed)
+	log.Printf("Processed %d files in %s", fileCount, elapsed)
 }
